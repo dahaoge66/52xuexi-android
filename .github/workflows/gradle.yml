@@ -1,10 +1,6 @@
 name: 构建52学习Android APP
 
 on:
-  push:
-    branches: [ main, master ]
-  pull_request:
-    branches: [ main, master ]
   workflow_dispatch:
 
 jobs:
@@ -30,34 +26,28 @@ jobs:
     - name: 创建local.properties
       run: echo "sdk.dir=$ANDROID_HOME" > local.properties
       
-    - name: 安装Gradle
+    - name: 安装Gradle 4.4.1
       run: |
+        sudo apt-get update
+        sudo apt-get install -y wget unzip
         wget -q https://services.gradle.org/distributions/gradle-4.4.1-bin.zip
         unzip -q gradle-4.4.1-bin.zip
         sudo mv gradle-4.4.1 /opt/gradle
-        echo "/opt/gradle/bin" >> $GITHUB_PATH
+        echo "PATH=/opt/gradle/bin:\$PATH" >> $GITHUB_ENV
         
-    - name: 生成Gradle Wrapper
+    - name: 直接使用gradle构建
       run: |
-        gradle wrapper --gradle-version 4.4.1
-        chmod +x gradlew
+        export PATH="/opt/gradle/bin:$PATH"
+        gradle assembleDebug --stacktrace
         
-    - name: 验证项目结构
-      run: |
-        ls -la
-        ls -la app/ || echo "No app directory"
-        
-    - name: 构建调试APK
-      run: ./gradlew assembleDebug --stacktrace --info
-      
     - name: 查找APK文件
       run: find . -name "*.apk" -type f
       
-    - name: 上传调试APK
+    - name: 上传APK
       uses: actions/upload-artifact@v4
       with:
-        name: 52学习-debug-apk
+        name: 构建结果
         path: |
-          app/build/outputs/apk/debug/*.apk
+          app/build/outputs/apk/**/*.apk
           **/*.apk
-        if-no-files-found: warn
+        if-no-files-found: ignore
