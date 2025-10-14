@@ -1,0 +1,75 @@
+name: 构建52学习Android APP
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 检出代码
+      uses: actions/checkout@v4
+      
+    - name: 设置Java 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        
+    - name: 设置Android SDK
+      uses: android-actions/setup-android@v3
+      with:
+        packages: 'platforms;android-33 build-tools;33.0.0 platform-tools'
+        accept-android-sdk-licenses: true
+        
+    - name: 创建Gradle Wrapper
+      run: |
+        echo "创建Gradle Wrapper文件..."
+        mkdir -p gradle/wrapper
+        
+        curl -L -o gradle/wrapper/gradle-wrapper.jar \
+          https://github.com/gradle/gradle/raw/v7.6.4/gradle/wrapper/gradle-wrapper.jar
+        
+        cat > gradle/wrapper/gradle-wrapper.properties << EOF
+        distributionBase=GRADLE_USER_HOME
+        distributionPath=wrapper/dists
+        distributionUrl=https\://services.gradle.org/distributions/gradle-7.6.4-bin.zip
+        zipStoreBase=GRADLE_USER_HOME
+        zipStorePath=wrapper/dists
+        EOF
+        
+        cat > gradlew << 'EOF'
+        #!/bin/bash
+        DEFAULT_JVM_OPTS="-Xmx2048m -Xms512m"
+        APP_NAME="Gradle"
+        
+        if [ -n "$JAVA_HOME" ] ; then
+            JAVACMD="$JAVA_HOME/bin/java"
+        else
+            JAVACMD="java"
+        fi
+        
+        CLASSPATH="$(dirname "$0")/gradle/wrapper/gradle-wrapper.jar"
+        
+        exec "$JAVACMD" $DEFAULT_JVM_OPTS $JAVA_OPTS $GRADLE_OPTS \
+            -classpath "$CLASSPATH" \
+            org.gradle.wrapper.GradleWrapperMain \
+            "$@"
+        EOF
+        
+        chmod +x gradlew
+        
+    - name: 构建APK
+      run: |
+        ./gradlew assembleDebug --stacktrace --no-daemon
+        
+    - name: 上传APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: 52xuexi-android-app
+        path: app/build/outputs/apk/debug/*.apk
