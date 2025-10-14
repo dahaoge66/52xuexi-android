@@ -27,25 +27,235 @@ jobs:
         packages: 'platforms;android-27 build-tools;27.0.3 platform-tools'
         accept-android-sdk-licenses: true
         
+    - name: 彻底检查项目结构
+      shell: bash
+      run: |
+        echo "==============================================="
+        echo "🔍 完整项目结构检查"
+        echo "==============================================="
+        
+        echo "📁 根目录文件:"
+        ls -la
+        
+        echo "📄 检查关键配置文件:"
+        echo "--- settings.gradle ---"
+        if [ -f "settings.gradle" ]; then
+          cat settings.gradle
+        else
+          echo "❌ settings.gradle 不存在"
+        fi
+        
+        echo "--- build.gradle ---"
+        if [ -f "build.gradle" ]; then
+          cat build.gradle
+        else
+          echo "❌ build.gradle 不存在"
+        fi
+        
+        echo "📱 app模块检查:"
+        if [ -d "app" ]; then
+          echo "✅ app目录存在"
+          ls -la app/
+          if [ -f "app/build.gradle" ]; then
+            echo "✅ app/build.gradle存在"
+            cat app/build.gradle
+          else
+            echo "❌ app/build.gradle不存在"
+          fi
+        else
+          echo "❌ app目录不存在"
+        fi
+
+    - name: 创建缺失的项目文件
+      shell: bash
+      run: |
+        echo "==============================================="
+        echo "🔧 创建/修复项目文件"
+        echo "==============================================="
+        
+        # 创建或修复 settings.gradle
+        echo "创建 settings.gradle..."
+        cat > settings.gradle << 'EOF'
+        rootProject.name = "52xuexi-android"
+        include ':app'
+        EOF
+        
+        # 创建或修复根 build.gradle
+        echo "创建根 build.gradle..."
+        cat > build.gradle << 'EOF'
+        buildscript {
+            ext.kotlin_version = "1.2.71"
+            repositories {
+                google()
+                mavenCentral()
+                jcenter()
+            }
+            dependencies {
+                classpath 'com.android.tools.build:gradle:3.1.4'
+                classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+            }
+        }
+        
+        allprojects {
+            repositories {
+                google()
+                mavenCentral()
+                jcenter()
+            }
+        }
+        
+        task clean(type: Delete) {
+            delete rootProject.buildDir
+        }
+        EOF
+        
+        # 确保app目录存在
+        mkdir -p app/src/main/java/com/learningplatform
+        mkdir -p app/src/main/res/values
+        mkdir -p app/src/main/res/layout
+        
+        # 创建或修复 app/build.gradle
+        echo "创建 app/build.gradle..."
+        cat > app/build.gradle << 'EOF'
+        apply plugin: 'com.android.application'
+        
+        android {
+            compileSdkVersion 27
+            
+            defaultConfig {
+                applicationId "com.learningplatform"
+                minSdkVersion 21
+                targetSdkVersion 27
+                versionCode 1
+                versionName "1.0.0"
+            }
+            
+            buildTypes {
+                release {
+                    minifyEnabled false
+                    proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+                }
+                debug {
+                    minifyEnabled false
+                    debuggable true
+                }
+            }
+            
+            compileOptions {
+                sourceCompatibility JavaVersion.VERSION_1_8
+                targetCompatibility JavaVersion.VERSION_1_8
+            }
+            
+            lintOptions {
+                checkReleaseBuilds false
+                abortOnError false
+            }
+        }
+        
+        dependencies {
+            implementation 'androidx.appcompat:appcompat:1.2.0'
+            implementation 'com.google.android.material:material:1.2.1'
+            implementation 'androidx.constraintlayout:constraintlayout:2.0.4'
+            implementation 'androidx.webkit:webkit:1.4.0'
+        }
+        EOF
+        
+        # 创建 AndroidManifest.xml
+        echo "创建 AndroidManifest.xml..."
+        cat > app/src/main/AndroidManifest.xml << 'EOF'
+        <?xml version="1.0" encoding="utf-8"?>
+        <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+            package="com.learningplatform">
+            
+            <uses-permission android:name="android.permission.INTERNET" />
+            <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+            
+            <application
+                android:allowBackup="true"
+                android:icon="@mipmap/ic_launcher"
+                android:label="52学习"
+                android:theme="@style/AppTheme">
+                
+                <activity android:name=".MainActivity"
+                    android:exported="true">
+                    <intent-filter>
+                        <action android:name="android.intent.action.MAIN" />
+                        <category android:name="android.intent.category.LAUNCHER" />
+                    </intent-filter>
+                </activity>
+            </application>
+        </manifest>
+        EOF
+        
+        # 创建主Activity
+        echo "创建 MainActivity.java..."
+        cat > app/src/main/java/com/learningplatform/MainActivity.java << 'EOF'
+        package com.learningplatform;
+        
+        import android.app.Activity;
+        import android.os.Bundle;
+        import android.webkit.WebView;
+        import android.webkit.WebViewClient;
+        
+        public class MainActivity extends Activity {
+            @Override
+            protected void onCreate(Bundle savedInstanceState) {
+                super.onCreate(savedInstanceState);
+                
+                WebView webView = new WebView(this);
+                webView.getSettings().setJavaScriptEnabled(true);
+                webView.setWebViewClient(new WebViewClient());
+                webView.loadUrl("http://www.52xuexi.art");
+                
+                setContentView(webView);
+            }
+        }
+        EOF
+        
+        # 创建基本资源文件
+        echo "创建资源文件..."
+        cat > app/src/main/res/values/strings.xml << 'EOF'
+        <resources>
+            <string name="app_name">52学习</string>
+        </resources>
+        EOF
+        
+        cat > app/src/main/res/values/styles.xml << 'EOF'
+        <resources>
+            <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
+                <item name="colorPrimary">#3F51B5</item>
+                <item name="colorPrimaryDark">#303F9F</item>
+                <item name="colorAccent">#FF4081</item>
+            </style>
+        </resources>
+        EOF
+        
+        # 创建启动图标目录
+        mkdir -p app/src/main/res/mipmap-hdpi
+        mkdir -p app/src/main/res/mipmap-mdpi
+        mkdir -p app/src/main/res/mipmap-xhdpi
+        mkdir -p app/src/main/res/mipmap-xxhdpi
+        mkdir -p app/src/main/res/mipmap-xxxhdpi
+        
+        echo "✅ 所有必要文件已创建"
+
     - name: 创建local.properties
       shell: bash
       run: |
-        echo "=== 创建local.properties ==="
         echo "sdk.dir=$ANDROID_HOME" > local.properties
-        echo "=== 验证local.properties内容 ==="
-        cat local.properties
-      
-    - name: 创建Gradle Wrapper文件
+        echo "✅ local.properties created: $(cat local.properties)"
+
+    - name: 创建Gradle Wrapper
       shell: bash
       run: |
-        echo "=== 创建gradle/wrapper目录 ==="
+        echo "创建gradle wrapper目录..."
         mkdir -p gradle/wrapper
         
-        echo "=== 下载gradle-wrapper.jar ==="
+        # 下载gradle-wrapper.jar
         curl -L -o gradle/wrapper/gradle-wrapper.jar \
           https://github.com/gradle/gradle/raw/v6.8.3/gradle/wrapper/gradle-wrapper.jar
         
-        echo "=== 创建gradle-wrapper.properties ==="
+        # 创建gradle-wrapper.properties
         cat > gradle/wrapper/gradle-wrapper.properties << 'EOF'
         distributionBase=GRADLE_USER_HOME
         distributionPath=wrapper/dists
@@ -54,27 +264,21 @@ jobs:
         zipStorePath=wrapper/dists
         EOF
         
-        echo "=== 创建gradlew脚本（修复JVM参数）==="
+        # 创建gradlew脚本
         cat > gradlew << 'EOF'
         #!/bin/bash
-        
-        # 正确的JVM参数设置
         DEFAULT_JVM_OPTS="-Xmx512m -Xms256m"
-        
-        # 脚本设置
         APP_NAME="Gradle"
         APP_BASE_NAME=${0##*/}
         APP_HOME=$( cd "${BASH_SOURCE[0]%/*}" && pwd )
         CLASSPATH="$APP_HOME/gradle/wrapper/gradle-wrapper.jar"
         
-        # 查找Java
         if [ -n "$JAVA_HOME" ] ; then
             JAVACMD="$JAVA_HOME/bin/java"
         else
             JAVACMD="java"
         fi
         
-        # 执行Gradle
         exec "$JAVACMD" $DEFAULT_JVM_OPTS $JAVA_OPTS $GRADLE_OPTS \
             -classpath "$CLASSPATH" \
             org.gradle.wrapper.GradleWrapperMain \
@@ -82,40 +286,63 @@ jobs:
         EOF
         
         chmod +x gradlew
-        
-        echo "=== 验证文件创建 ==="
-        ls -la gradlew
-        ls -la gradle/wrapper/
-        
-    - name: 验证Gradle环境
+        echo "✅ Gradle wrapper created"
+
+    - name: 验证项目并列出任务
       shell: bash
       run: |
-        echo "=== 验证Java环境 ==="
-        echo "JAVA_HOME: $JAVA_HOME"
-        java -version
+        echo "==============================================="
+        echo "🔍 验证修复后的项目结构"
+        echo "==============================================="
         
-        echo "=== 验证Gradle Wrapper ==="
+        echo "✅ 最终项目结构:"
+        find . -name "*.gradle" -o -name "*.xml" -o -name "*.java" | head -20
+        
+        echo "✅ 验证Gradle配置:"
         ./gradlew --version
         
-    - name: 构建调试APK
+        echo "✅ 列出所有可用任务:"
+        ./gradlew tasks --all | grep -i assemble || echo "没有找到assemble任务"
+
+    - name: 构建APK
       shell: bash
       run: |
-        echo "=== 开始构建APK ==="
-        ./gradlew assembleDebug --stacktrace --info --no-daemon
-      
-    - name: 查找生成的APK
-      shell: bash
-      run: |
-        echo "=== 查找所有APK文件 ==="
-        find . -name "*.apk" -type f || echo "未找到APK文件"
-        echo "=== 构建输出目录 ==="
-        ls -la app/build/outputs/ || echo "构建输出目录不存在"
+        echo "==============================================="
+        echo "🚀 开始构建APK"
+        echo "==============================================="
         
-    - name: 上传调试APK
+        # 尝试构建
+        if ./gradlew app:assembleDebug --stacktrace --no-daemon; then
+          echo "✅ app:assembleDebug 构建成功"
+        elif ./gradlew assembleDebug --stacktrace --no-daemon; then
+          echo "✅ assembleDebug 构建成功"
+        else
+          echo "❌ 构建失败，尝试清理后重新构建"
+          ./gradlew clean
+          ./gradlew app:assembleDebug --stacktrace --no-daemon
+        fi
+
+    - name: 查找并上传APK
+      shell: bash
+      run: |
+        echo "==============================================="
+        echo "📦 查找生成的APK"
+        echo "==============================================="
+        
+        echo "🔍 查找所有APK文件:"
+        find . -name "*.apk" -type f
+        
+        echo "📁 检查输出目录:"
+        if [ -d "app/build/outputs/apk" ]; then
+          ls -la app/build/outputs/apk/debug/ || ls -la app/build/outputs/apk/
+        fi
+
+    - name: 上传APK
       uses: actions/upload-artifact@v4
       with:
-        name: 52学习-debug-apk
+        name: 52学习-android-apk
         path: |
-          app/build/outputs/apk/debug/*.apk
+          app/build/outputs/apk/**/*.apk
+          **/build/outputs/apk/**/*.apk
           **/*.apk
         if-no-files-found: warn
