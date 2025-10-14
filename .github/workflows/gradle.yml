@@ -24,33 +24,21 @@ jobs:
     - name: 设置Android SDK
       uses: android-actions/setup-android@v3
       with:
-        api-level: 27
-        build-tools: 27.0.3
+        packages: 'platforms;android-27 build-tools;27.0.3 platform-tools'
+        accept-android-sdk-licenses: true
         
-    - name: 接受SDK许可证
-      run: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
-      
     - name: 创建local.properties
       run: echo "sdk.dir=$ANDROID_HOME" > local.properties
-      
-    - name: 检查Gradle版本
-      run: ./gradlew --version
       
     - name: 授予执行权限
       run: chmod +x gradlew
       
-    - name: 清理项目
-      run: ./gradlew clean --stacktrace
-      
     - name: 构建调试APK
-      run: ./gradlew assembleDebug --stacktrace --info
-      
-    - name: 列出输出文件
-      run: find . -name "*.apk" -type f
+      run: ./gradlew assembleDebug --stacktrace
       
     - name: 上传调试APK
       uses: actions/upload-artifact@v4
       with:
         name: 52学习-debug-apk
-        path: app/build/outputs/apk/debug/*.apk
+        path: app/build/outputs/apk/debug/app-debug.apk
         if-no-files-found: warn
