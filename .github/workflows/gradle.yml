@@ -1,6 +1,10 @@
 name: 构建52学习Android APP
 
 on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
   workflow_dispatch:
 
 jobs:
@@ -26,28 +30,46 @@ jobs:
     - name: 创建local.properties
       run: echo "sdk.dir=$ANDROID_HOME" > local.properties
       
-    - name: 安装Gradle 4.4.1
+    - name: 安装Gradle 6.8.3
       run: |
         sudo apt-get update
         sudo apt-get install -y wget unzip
-        wget -q https://services.gradle.org/distributions/gradle-4.4.1-bin.zip
-        unzip -q gradle-4.4.1-bin.zip
-        sudo mv gradle-4.4.1 /opt/gradle
+        wget -q https://services.gradle.org/distributions/gradle-6.8.3-bin.zip
+        unzip -q gradle-6.8.3-bin.zip
+        sudo mv gradle-6.8.3 /opt/gradle
         echo "PATH=/opt/gradle/bin:\$PATH" >> $GITHUB_ENV
         
-    - name: 直接使用gradle构建
+    - name: 生成Gradle Wrapper
       run: |
         export PATH="/opt/gradle/bin:$PATH"
-        gradle assembleDebug --stacktrace
+        export JAVA_HOME=$JAVA_HOME_17_X64
+        gradle wrapper --gradle-version 6.8.3
+        chmod +x gradlew
         
-    - name: 查找APK文件
-      run: find . -name "*.apk" -type f
+    - name: 验证项目结构
+      run: |
+        echo "=== 项目根目录 ==="
+        ls -la
+        echo "=== app目录 ==="
+        ls -la app/ || echo "No app directory"
+        echo "=== Gradle文件 ==="
+        ls -la gradlew* || echo "No gradlew files"
+        
+    - name: 构建调试APK
+      run: ./gradlew assembleDebug --stacktrace --info
       
-    - name: 上传APK
+    - name: 查找生成的APK
+      run: |
+        echo "=== 查找所有APK文件 ==="
+        find . -name "*.apk" -type f || echo "未找到APK文件"
+        echo "=== 构建输出目录 ==="
+        ls -la app/build/outputs/ || echo "构建输出目录不存在"
+        
+    - name: 上传调试APK
       uses: actions/upload-artifact@v4
       with:
-        name: 构建结果
+        name: 52学习-debug-apk
         path: |
-          app/build/outputs/apk/**/*.apk
+          app/build/outputs/apk/debug/*.apk
           **/*.apk
-        if-no-files-found: ignore
+        if-no-files-found: warn
