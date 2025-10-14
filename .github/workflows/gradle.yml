@@ -30,15 +30,34 @@ jobs:
     - name: 创建local.properties
       run: echo "sdk.dir=$ANDROID_HOME" > local.properties
       
-    - name: 授予执行权限
-      run: chmod +x gradlew
-      
+    - name: 安装Gradle
+      run: |
+        wget -q https://services.gradle.org/distributions/gradle-4.4.1-bin.zip
+        unzip -q gradle-4.4.1-bin.zip
+        sudo mv gradle-4.4.1 /opt/gradle
+        echo "/opt/gradle/bin" >> $GITHUB_PATH
+        
+    - name: 生成Gradle Wrapper
+      run: |
+        gradle wrapper --gradle-version 4.4.1
+        chmod +x gradlew
+        
+    - name: 验证项目结构
+      run: |
+        ls -la
+        ls -la app/ || echo "No app directory"
+        
     - name: 构建调试APK
-      run: ./gradlew assembleDebug --stacktrace
+      run: ./gradlew assembleDebug --stacktrace --info
+      
+    - name: 查找APK文件
+      run: find . -name "*.apk" -type f
       
     - name: 上传调试APK
       uses: actions/upload-artifact@v4
       with:
         name: 52学习-debug-apk
-        path: app/build/outputs/apk/debug/app-debug.apk
+        path: |
+          app/build/outputs/apk/debug/*.apk
+          **/*.apk
         if-no-files-found: warn
