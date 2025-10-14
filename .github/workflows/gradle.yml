@@ -35,7 +35,7 @@ jobs:
         echo "=== 验证local.properties内容 ==="
         cat local.properties
       
-    - name: 直接创建Gradle Wrapper文件
+    - name: 创建Gradle Wrapper文件
       shell: bash
       run: |
         echo "=== 创建gradle/wrapper目录 ==="
@@ -54,15 +54,31 @@ jobs:
         zipStorePath=wrapper/dists
         EOF
         
-        echo "=== 创建gradlew脚本 ==="
+        echo "=== 创建gradlew脚本（修复JVM参数）==="
         cat > gradlew << 'EOF'
         #!/bin/bash
-        DEFAULT_JVM_OPTS='"-Xmx64m" "-Xms64m"'
+        
+        # 正确的JVM参数设置
+        DEFAULT_JVM_OPTS="-Xmx512m -Xms256m"
+        
+        # 脚本设置
         APP_NAME="Gradle"
         APP_BASE_NAME=${0##*/}
         APP_HOME=$( cd "${BASH_SOURCE[0]%/*}" && pwd )
-        CLASSPATH=$APP_HOME/gradle/wrapper/gradle-wrapper.jar
-        exec "$JAVA_HOME/bin/java" $DEFAULT_JVM_OPTS $JAVA_OPTS $APP_NAME_OPTS -classpath "$CLASSPATH" org.gradle.wrapper.GradleWrapperMain "$@"
+        CLASSPATH="$APP_HOME/gradle/wrapper/gradle-wrapper.jar"
+        
+        # 查找Java
+        if [ -n "$JAVA_HOME" ] ; then
+            JAVACMD="$JAVA_HOME/bin/java"
+        else
+            JAVACMD="java"
+        fi
+        
+        # 执行Gradle
+        exec "$JAVACMD" $DEFAULT_JVM_OPTS $JAVA_OPTS $GRADLE_OPTS \
+            -classpath "$CLASSPATH" \
+            org.gradle.wrapper.GradleWrapperMain \
+            "$@"
         EOF
         
         chmod +x gradlew
@@ -71,31 +87,19 @@ jobs:
         ls -la gradlew
         ls -la gradle/wrapper/
         
-    - name: 验证项目结构
+    - name: 验证Gradle环境
       shell: bash
       run: |
-        echo "=== 项目根目录 ==="
-        ls -la
-        echo "=== app目录 ==="
-        ls -la app/ || echo "No app directory"
-        echo "=== Gradle文件 ==="
-        ls -la gradlew* || echo "No gradlew files"
-        echo "=== Gradle Wrapper目录 ==="
-        ls -la gradle/wrapper/ || echo "No gradle wrapper directory"
+        echo "=== 验证Java环境 ==="
+        echo "JAVA_HOME: $JAVA_HOME"
+        java -version
+        
+        echo "=== 验证Gradle Wrapper ==="
+        ./gradlew --version
         
     - name: 构建调试APK
       shell: bash
       run: |
-        echo "=== 设置环境变量 ==="
-        export JAVA_HOME=$JAVA_HOME_17_X64
-        export ANDROID_HOME=$ANDROID_HOME
-        export PATH=$JAVA_HOME/bin:$ANDROID_HOME/tools:$ANDROID_HOME/platform-tools:$PATH
-        
-        echo "=== 验证环境 ==="
-        echo "JAVA_HOME: $JAVA_HOME"
-        echo "ANDROID_HOME: $ANDROID_HOME"
-        java -version
-        
         echo "=== 开始构建APK ==="
         ./gradlew assembleDebug --stacktrace --info --no-daemon
       
@@ -106,8 +110,6 @@ jobs:
         find . -name "*.apk" -type f || echo "未找到APK文件"
         echo "=== 构建输出目录 ==="
         ls -la app/build/outputs/ || echo "构建输出目录不存在"
-        echo "=== APK输出目录 ==="
-        ls -la app/build/outputs/apk/ || echo "APK输出目录不存在"
         
     - name: 上传调试APK
       uses: actions/upload-artifact@v4
