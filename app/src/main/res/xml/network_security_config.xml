@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- 全局超级宽松配置 - 允许所有流量 -->
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <!-- 信任系统证书 -->
+            <certificates src="system"/>
+            <!-- 信任用户证书 -->  
+            <certificates src="user"/>
+        </trust-anchors>
+    </base-config>
+    
+    <!-- 域名特定配置 - 完全信任所有域名 -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">52xuexi.art</domain>
+        <domain includeSubdomains="true">www.52xuexi.art</domain>
+        <!-- 允许所有可能的媒体域名 -->
+        <domain includeSubdomains="true">*.com</domain>
+        <domain includeSubdomains="true">*.cn</domain>
+        <domain includeSubdomains="true">*.net</domain>
+        <domain includeSubdomains="true">*.org</domain>
+        <trust-anchors>
+            <certificates src="system"/>
+            <certificates src="user"/>
+        </trust-anchors>
+    </domain-config>
+    
+    <!-- 调试配置 - 开发和测试时完全信任 -->
+    <debug-overrides>
+        <trust-anchors>
+            <certificates src="system"/>
+            <certificates src="user"/>
+        </trust-anchors>
+    </debug-overrides>
+</network-security-config>
